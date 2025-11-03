@@ -11,7 +11,7 @@ Pequena automação para responder no whatsapp WEB em horário definido, e imped
 
 1. **Python 3.x** instalado no seu sistema.
 2. **Google Chrome** instalado.
-3. **ChromeDriver** instalado e configurado.
+3. **ChromeDriver** instalado e configurado, consulte a versão do seu navegador e instale a versão compatível, (https://developer.chrome.com/docs/chromedriver/downloads?hl=pt-br).
 
 ## Setup
 
