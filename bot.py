@@ -9,6 +9,9 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+# -------------------
+# CONFIGURAÇÕES GERAIS 'Europe/Lisbon'
+# -------------------
 TIMEZONE = 'America/Sao_Paulo'  # Fuso horário principal
 
 def read_profiles():
@@ -66,12 +69,11 @@ def get_message_by_time(timezone_str=TIMEZONE):
 
     return "Mensagem padrão, horário não definido!", current_hour
 
-
 driver_path = './chromedriver/chromedriver'
 service = Service(driver_path)
 options = webdriver.ChromeOptions()
 options.add_argument("--start-maximized")
-options.add_argument("--user-data-dir=./chrome_data")  # mantém login
+options.add_argument("--user-data-dir=./chrome_data")
 driver = webdriver.Chrome(service=service, options=options)
 
 driver.get('https://web.whatsapp.com')
@@ -81,7 +83,6 @@ WebDriverWait(driver, 180).until(
     EC.presence_of_element_located((By.XPATH, '//div[@data-tab="3"]'))
 )
 print("✅ WhatsApp carregado com sucesso!")
-
 
 def send_auto_reply(contact_name):
     try:
@@ -105,7 +106,9 @@ def send_auto_reply(contact_name):
         )
 
         auto_message, current_hour = get_message_by_time(TIMEZONE)
+
         auto_message = auto_message.replace("%s%", current_hour)
+
         auto_message = auto_message.replace("%d%", TIMEZONE)
 
         message_box.send_keys(auto_message)
@@ -117,10 +120,9 @@ def send_auto_reply(contact_name):
     except Exception as e:
         print(f"❌ Erro ao enviar mensagem para {contact_name}: {str(e)}")
 
-
 def monitor_new_messages():
     print("🟢 Monitorando novas mensagens... (Ctrl + C para parar)")
-    last_replied = set()
+    profiles = read_profiles()
 
     while True:
         try:
@@ -132,24 +134,32 @@ def monitor_new_messages():
             if not unread_rows:
                 time.sleep(5)
                 continue
+            unread_conversations = []
 
             for row in unread_rows:
                 try:
                     contact_name_elem = row.find_element(By.XPATH, './/span[@title]')
                     contact_name = contact_name_elem.get_attribute("title")
 
-                    if contact_name in last_replied:
+                    if any(profile in contact_name.lower() for profile in profiles):
+                        print(f"🚫 Contato ou grupo '{contact_name}' está na lista de exceções. Ignorando.")
                         continue
+
+                    unread_conversations.append(contact_name)
 
                     print(f"📩 Nova mensagem de: {contact_name}")
                     row.click()
+
                     time.sleep(1)
+
                     send_auto_reply(contact_name)
-                    last_replied.add(contact_name)
+
                     time.sleep(3)
 
                 except Exception as inner_e:
                     print(f"⚠️ Erro ao processar chat: {inner_e}")
+
+            print(f"🔍 Conversas com mensagens não lidas: {unread_conversations}")
 
             time.sleep(5)
 
@@ -157,4 +167,8 @@ def monitor_new_messages():
             print(f"❌ Erro no monitoramento: {e}")
             time.sleep(5)
 
+
+# -------------------
+# INÍCIO DO BOT
+# -------------------
 monitor_new_messages()
