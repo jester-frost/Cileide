@@ -20,5 +20,5 @@ Pequena automação para responder no whatsapp WEB em horário definido, e imped
 Se você ainda não tem o projeto, clone este repositório:
 
 ```bash
-git clone https://github.com/seu-usuario/whatsapp-auto-reply.git
-cd whatsapp-auto-reply
+git clone https://github.com/jester-frost/Cileide.git
+cd Cileide
