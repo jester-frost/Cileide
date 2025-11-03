@@ -13,6 +13,8 @@ from selenium.webdriver.support import expected_conditions as EC
 # CONFIGURAÇÕES GERAIS 'Europe/Lisbon'
 # -------------------
 TIMEZONE = 'America/Sao_Paulo'  # Fuso horário principal
+single_search = 'mensagem não lida'
+plural_search = 'mensagens não lidas'
 
 def read_profiles():
     profiles = []
@@ -120,20 +122,30 @@ def send_auto_reply(contact_name):
     except Exception as e:
         print(f"❌ Erro ao enviar mensagem para {contact_name}: {str(e)}")
 
+
+
 def monitor_new_messages():
     print("🟢 Monitorando novas mensagens... (Ctrl + C para parar)")
     profiles = read_profiles()
 
     while True:
         try:
-            unread_rows = driver.find_elements(
+            unread_rows_single = driver.find_elements(
                 By.XPATH,
-                '//div[@id="pane-side"]//span[contains(@aria-label, "mensagem não lida")]/ancestor::div[@role="row"]'
+                f'//div[@id="pane-side"]//span[contains(@aria-label, "{single_search}")]/ancestor::div[@role="row"]'
             )
+
+            unread_rows_plural = driver.find_elements(
+                By.XPATH,
+                f'//div[@id="pane-side"]//span[contains(@aria-label, "{plural_search}")]/ancestor::div[@role="row"]'
+            )
+
+            unread_rows = unread_rows_single + unread_rows_plural
 
             if not unread_rows:
                 time.sleep(5)
                 continue
+
             unread_conversations = []
 
             for row in unread_rows:
@@ -168,7 +180,4 @@ def monitor_new_messages():
             time.sleep(5)
 
 
-# -------------------
-# INÍCIO DO BOT
-# -------------------
 monitor_new_messages()
