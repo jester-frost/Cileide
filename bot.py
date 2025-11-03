@@ -9,6 +9,8 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+TIMEZONE = 'America/Sao_Paulo'  # Fuso horário principal
+
 def read_profiles():
     profiles = []
     try:
@@ -21,24 +23,22 @@ def read_profiles():
         print(f"❌ Erro ao ler o arquivo de perfis: {e}")
     return profiles
 
-
-def get_message_by_time(timezone_str='Europe/Lisbon'):
+def get_message_by_time(timezone_str=TIMEZONE):
     try:
         tz = pytz.timezone(timezone_str)
     except pytz.UnknownTimeZoneError:
-        print(f"⚠️ Fuso horário '{timezone_str}' inválido. Usando 'America/Sao_Paulo' como padrão.")
-        tz = pytz.timezone('America/Sao_Paulo')
+        print(f"⚠️ Fuso horário '{timezone_str}' inválido. Usando '{TIMEZONE}' como padrão.")
+        tz = pytz.timezone(TIMEZONE)
 
     current_time = datetime.now(tz)
     current_hour = current_time.strftime("%H:%M")
-    print(f"🕓 Horário atual ({timezone_str}): {current_hour}")
 
     try:
         with open('messages/messages.txt', 'r', encoding='utf-8') as file:
             messages = file.readlines()
     except Exception as e:
         print(f"❌ Erro ao ler o arquivo de mensagens: {e}")
-        return "Mensagem padrão, algo deu errado!"
+        return "Mensagem padrão, algo deu errado!", current_hour
 
     for line in messages:
         line = line.strip()
@@ -54,20 +54,18 @@ def get_message_by_time(timezone_str='Europe/Lisbon'):
                 continue
 
             start, end = time_range.split('-')
-
-
             start_time = datetime.strptime(start.strip(), "%H:%M").time()
             end_time = datetime.strptime(end.strip(), "%H:%M").time()
             now_time = current_time.time()
 
-
             if start_time <= now_time <= end_time:
-                return message.strip('" ').strip()
+                return message.strip('" ').strip(), current_hour
 
         except ValueError:
             continue
 
-    return "Mensagem padrão, horário não definido!"
+    return "Mensagem padrão, horário não definido!", current_hour
+
 
 driver_path = './chromedriver/chromedriver'
 service = Service(driver_path)
@@ -76,7 +74,6 @@ options.add_argument("--start-maximized")
 options.add_argument("--user-data-dir=./chrome_data")  # mantém login
 driver = webdriver.Chrome(service=service, options=options)
 
-
 driver.get('https://web.whatsapp.com')
 print("🟡 Escaneie o QR Code para continuar...")
 
@@ -84,6 +81,7 @@ WebDriverWait(driver, 180).until(
     EC.presence_of_element_located((By.XPATH, '//div[@data-tab="3"]'))
 )
 print("✅ WhatsApp carregado com sucesso!")
+
 
 def send_auto_reply(contact_name):
     try:
@@ -106,20 +104,19 @@ def send_auto_reply(contact_name):
             )
         )
 
-        auto_message = get_message_by_time()
+        auto_message, current_hour = get_message_by_time(TIMEZONE)
+        auto_message = auto_message.replace("%s%", current_hour)
+        auto_message = auto_message.replace("%d%", TIMEZONE)
 
         message_box.send_keys(auto_message)
         time.sleep(0.5)
         message_box.send_keys(Keys.RETURN)
-        time.sleep(0.6)
-        message_box.send_keys(f"🕓 Horário atual ({timezone_str}): {current_hour}")
-        time.sleep(0.5)
-        message_box.send_keys(Keys.RETURN)
 
         print(f"💬 Mensagem automática enviada para {contact_name}.")
-    
+
     except Exception as e:
         print(f"❌ Erro ao enviar mensagem para {contact_name}: {str(e)}")
+
 
 def monitor_new_messages():
     print("🟢 Monitorando novas mensagens... (Ctrl + C para parar)")
